@@ -1,0 +1,10 @@
+node_modules
+dist
+test-results
+playwright-report
+blob-report
+*.local
+.env
+tsconfig.tsbuildinfo
+.idea/
+.vscode/
