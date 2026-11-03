@@ -9,6 +9,7 @@ import PairBadge from '@/components/PairBadge.vue'
 import VersionBadge from '@/components/VersionBadge.vue'
 import SegControl from '@/components/SegControl.vue'
 import { cls, feePct, fmtPct, fmtUsd, price$ } from '@/lib/format'
+import type { Pool } from '@/api/types'
 
 const markets = useMarketsStore()
 const lq = useLiquidityStore()
@@ -21,6 +22,22 @@ const ver = computed({
   get: () => markets.version,
   set: (v: string) => { markets.version = v as 'all' | 'v3' | 'v4' },
 })
+
+const networkSub = computed(() => {
+  const names = [...new Set(markets.pools.map((p) => p.network).filter(Boolean))]
+  return names.length ? names.join(' · ') : 'no pools loaded'
+})
+
+function poolMeta(p: Pool) {
+  const bits = [p.network || 'Unknown network']
+  if (p.hook) bits.push(p.hook + ' hook')
+  else bits.push('Uniswap v3 pool')
+  return bits.join(' · ')
+}
+
+function networkClass(name: string) {
+  return name === 'Simulated' ? 'warn' : 'mute'
+}
 
 function addLiq(id: string) {
   lq.selectPool(id)
@@ -45,13 +62,13 @@ function trade(id: string, side: 'long' | 'short') {
     <div class="grid split-3" style="margin-bottom:16px">
       <StatCard v-if="markets.loading" label="Pools tracked" value="…" sub="loading" />
       <template v-else>
-        <StatCard label="Pools tracked" :value="String(markets.stats.count)" sub="v3 + v4 across Arbitrum" />
+        <StatCard label="Pools tracked" :value="String(markets.stats.count)" :sub="networkSub" />
         <StatCard label="Aggregate TVL" :value="fmtUsd(markets.stats.tvl)" sub="of listed pools" />
         <StatCard label="24h Volume" :value="fmtUsd(markets.stats.vol)" sub="fees follow volume" />
         <StatCard
           label="Best fee APR"
           :value="markets.stats.best ? markets.stats.best.apr.toFixed(1) + '%' : '—'"
-          :sub="markets.stats.best ? `${markets.stats.best.token0}/${markets.stats.best.token1} · ${markets.stats.best.version} · ${feePct(markets.stats.best.feeBps)}` : '—'"
+          :sub="markets.stats.best ? `${markets.stats.best.token0}/${markets.stats.best.token1} · ${markets.stats.best.network} · ${feePct(markets.stats.best.feeBps)}` : '—'"
           tone="pos"
         />
       </template>
@@ -66,23 +83,24 @@ function trade(id: string, side: 'long' | 'short') {
           v-model="ver"
           :options="[{ value: 'all', label: 'All' }, { value: 'v3', label: 'Uniswap v3' }, { value: 'v4', label: 'Uniswap v4' }]"
         />
-        <input type="search" v-model="markets.query" placeholder="Search pair, e.g. ETH/USDC" />
+        <input type="search" v-model="markets.query" placeholder="Search pair or network" />
       </header>
       <div class="table-wrap">
         <table>
           <thead>
             <tr>
-              <th>Pool</th><th>Version</th><th>Fee tier</th><th class="num">Price</th><th class="num">24h</th>
+              <th>Pool</th><th>Network</th><th>Version</th><th>Fee tier</th><th class="num">Price</th><th class="num">24h</th>
               <th class="num">TVL</th><th class="num">Volume 24h</th><th class="num">Fee APR</th><th class="num">Vol (ann.)</th><th></th>
             </tr>
           </thead>
           <tbody>
-            <tr v-if="markets.loading"><td colspan="10"><div class="skeleton" style="margin:12px" /></td></tr>
-            <tr v-else-if="!markets.filteredPools.length"><td colspan="10" class="empty">No pools match that search.</td></tr>
+            <tr v-if="markets.loading"><td colspan="11"><div class="skeleton" style="margin:12px" /></td></tr>
+            <tr v-else-if="!markets.filteredPools.length"><td colspan="11" class="empty">No pools match that search.</td></tr>
             <tr v-for="p in markets.filteredPools" :key="p.id">
               <td>
-                <PairBadge :a="p.token0" :b="p.token1" :name="`${p.token0}/${p.token1}`" :meta="p.hook ? p.hook + ' hook' : 'standard pool'" />
+                <PairBadge :a="p.token0" :b="p.token1" :name="`${p.token0}/${p.token1}`" :meta="poolMeta(p)" />
               </td>
+              <td><span class="badge" :class="networkClass(p.network)">{{ p.network || '—' }}</span></td>
               <td><VersionBadge :version="p.version" /></td>
               <td class="mono">{{ feePct(p.feeBps) }}</td>
               <td class="num">{{ price$(p.price) }}</td>

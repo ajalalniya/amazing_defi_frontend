@@ -4,6 +4,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { useWalletStore } from '@/stores/wallet'
 import { usePortfolioStore } from '@/stores/portfolio'
 import { useToastStore } from '@/stores/toasts'
+import { useSessionStore } from '@/stores/session'
 import { cls, fmtSigned } from '@/lib/format'
 
 const route = useRoute()
@@ -11,6 +12,7 @@ const router = useRouter()
 const wallet = useWalletStore()
 const portfolio = usePortfolioStore()
 const toasts = useToastStore()
+const session = useSessionStore()
 
 const tabs = [
   { to: '/markets', label: 'Markets' },
@@ -54,10 +56,19 @@ function go(to: string) {
       >{{ t.label }}</button>
     </nav>
     <div class="spacer" />
+    <div
+      class="pill"
+      :class="{
+        'mode-mock': session.provider === 'mock',
+        'mode-chain': session.provider === 'chain',
+        'mode-down': !session.provider,
+      }"
+      :title="session.hint"
+    >{{ session.label }}</div>
     <div class="pill" title="Aggregate unrealised P/L across Uniswap v3, v4 and GMX">
       Total P/L <b :class="pnlCls">{{ pnlText }}</b>
     </div>
-    <div class="pill"><span class="dot" /> {{ wallet.chain }}</div>
+    <div v-if="wallet.connected" class="pill"><span class="dot" /> {{ wallet.chain }}</div>
     <button class="btn" :class="wallet.connected ? '' : 'primary'" @click="onWallet">
       {{ wallet.connected ? wallet.shortAddress : 'Connect Wallet' }}
     </button>

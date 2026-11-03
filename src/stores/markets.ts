@@ -16,7 +16,7 @@ export const useMarketsStore = defineStore('markets', () => {
     return pools.value.filter((p) => {
       if (version.value !== 'all' && p.version !== version.value) return false
       if (!q) return true
-      return `${p.token0}/${p.token1}`.toLowerCase().includes(q) || p.token0.toLowerCase().includes(q) || p.token1.toLowerCase().includes(q)
+      return `${p.token0}/${p.token1}`.toLowerCase().includes(q) || p.token0.toLowerCase().includes(q) || p.token1.toLowerCase().includes(q) || (p.network || '').toLowerCase().includes(q)
     })
   })
 

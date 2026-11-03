@@ -1,6 +1,30 @@
 import { test, expect } from '@playwright/test'
 
+const MOCK_ACCOUNT = '0x7A3f000000000000000000000000000000004C21'
+
 test('connect, add liquidity, positions, two-leg backtest', async ({ page }) => {
+  await page.addInitScript((address) => {
+    const listeners: Record<string, ((...args: unknown[]) => void)[]> = {}
+    ;(window as unknown as { ethereum: object }).ethereum = {
+      isMetaMask: true,
+      request: async ({ method }: { method: string }) => {
+        if (method === 'eth_requestAccounts' || method === 'eth_accounts') return [address]
+        if (method === 'eth_chainId') return '0xa4b1'
+        if (method === 'eth_getBalance') return '0x8ac7230489e80000'
+        if (method === 'eth_call') return '0x' + (50_000n * 1_000_000n).toString(16).padStart(64, '0')
+        if (method === 'eth_sendTransaction') return '0x' + 'ab'.repeat(32)
+        if (method === 'wallet_revokePermissions') return null
+        return null
+      },
+      on(event: string, handler: (...args: unknown[]) => void) {
+        ;(listeners[event] ||= []).push(handler)
+      },
+      removeListener(event: string, handler: (...args: unknown[]) => void) {
+        listeners[event] = (listeners[event] || []).filter((h) => h !== handler)
+      },
+    }
+  }, MOCK_ACCOUNT)
+
   await page.goto('/markets')
   await expect(page.getByRole('heading', { name: 'Markets', exact: true })).toBeVisible()
   await expect(page.getByText('ETH/USDC').first()).toBeVisible({ timeout: 15_000 })

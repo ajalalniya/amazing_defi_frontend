@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { hitTest, logP, logY, rangeDomain, shiftBand } from '@/lib/rangeGeom'
+import { hitTest, logP, lpRangeAt, logY, rangeDomain, shiftBand } from '@/lib/rangeGeom'
 
 describe('RangeChart geometry', () => {
   it('Y(P(y)) round-trips', () => {
@@ -31,5 +31,23 @@ describe('RangeChart geometry', () => {
     const mx = Math.max(100, ...series)
     expect(d.hi).toBeLessThanOrEqual(mx * 2.2 * Math.pow((mx * 2.2) / (mn / 2.2), 0.07) + 1e-6)
     expect(d.lo).toBeGreaterThan(0)
+  })
+})
+
+describe('lpRangeAt', () => {
+  it('returns a static leg its one range every day', () => {
+    expect(lpRangeAt({ lower: 1771, upper: 2397 }, 0)).toEqual({ lower: 1771, upper: 2397 })
+    expect(lpRangeAt({ lower: 1771, upper: 2397 }, 9)).toEqual({ lower: 1771, upper: 2397 })
+  })
+
+  it('gives day i the range held after close i-1, so a recentre shows the next day', () => {
+    const leg = { lower: 100, upper: 110, rangeLower: [100, 100, 120, 120], rangeUpper: [110, 110, 132, 132] }
+    expect(lpRangeAt(leg, 0)).toEqual({ lower: 100, upper: 110 })
+    expect(lpRangeAt(leg, 2)).toEqual({ lower: 100, upper: 110 })
+    expect(lpRangeAt(leg, 3)).toEqual({ lower: 120, upper: 132 })
+  })
+
+  it('has no range for a leg without one', () => {
+    expect(lpRangeAt({}, 0)).toBeNull()
   })
 })

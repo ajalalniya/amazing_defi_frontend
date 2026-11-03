@@ -5,6 +5,9 @@ playwright-report
 blob-report
 *.local
 .env
+.env.*
+!.env.development
+!.env.live
 tsconfig.tsbuildinfo
 .idea/
 .vscode/

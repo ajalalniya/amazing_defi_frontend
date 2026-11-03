@@ -70,3 +70,19 @@ export function gridY(ctx: CanvasRenderingContext2D, x0: number, x1: number, y: 
     ctx.fillText(label, x0 - 8, y + 3.5)
   }
 }
+
+// lpRangeAt is the LP range in force over day i (the move from close i-1 to
+// close i). A rebalancing leg reports the range it held after each close; a
+// static one has a single lower/upper.
+export function lpRangeAt(
+  leg: { lower?: number; upper?: number; rangeLower?: number[]; rangeUpper?: number[] },
+  i: number,
+): { lower: number; upper: number } | null {
+  const lo = leg.rangeLower, hi = leg.rangeUpper
+  if (lo?.length && hi?.length) {
+    const k = Math.min(Math.max(i - 1, 0), lo.length - 1)
+    return { lower: lo[k], upper: hi[k] }
+  }
+  if ((leg.lower ?? 0) > 0 && (leg.upper ?? 0) > (leg.lower ?? 0)) return { lower: leg.lower!, upper: leg.upper! }
+  return null
+}
